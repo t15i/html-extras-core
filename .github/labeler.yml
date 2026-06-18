@@ -1,0 +1,33 @@
+lib:
+  - any:
+    - changed-files: 
+      - any-glob-to-any-file:
+        - 'lib/**/*'
+
+feature:
+  - any:
+    - head-branch:
+      - '^feature'
+
+fix:
+  - any:
+    - head-branch:
+      - '^fix'
+
+test:
+  - any:
+    - changed-files: 
+      - any-glob-to-any-file:
+        - 'test/**/*'
+
+ci:
+  - any:
+    - changed-files: 
+      - any-glob-to-any-file:
+        - '.github/**/*'
+
+config:
+  - any:
+    - changed-files: 
+      - any-glob-to-any-file:
+        - '*config*'
