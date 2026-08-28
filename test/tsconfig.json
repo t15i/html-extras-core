@@ -3,6 +3,9 @@
   "include": ["./**/*"],
   "compilerOptions": {
     "rootDir": ".",
+    // The browser context types of vitest reach a type of Node, and the tests
+    // have no reason to carry the types of Node for it.
+    "skipLibCheck": true,
     "outDir": "../build/test/",
     "paths": {
       "lib": ["../lib/index.ts"]
