@@ -1,26 +1,39 @@
 {
-  "name": "@t15i/lib-typescript-template",
+  "name": "@html-extras/core",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "version": "0.0.0",
-  "description": "",
-  "keywords": [],
+  "description": "The shared primitives the html-extras collection of elements is built on",
+  "keywords": [
+    "custom-elements",
+    "web-components",
+    "reactive",
+    "signals",
+    "webidl",
+    "reflection",
+    "attributes",
+    "html"
+  ],
   "author": "Aleksandr Boiarnikov <dev@gmvr.pw> (https://gmvr.pw)",
   "license": "MIT",
-  "homepage": "https://github.com/t15i/lib-typescript-template#README",
+  "homepage": "https://github.com/t15i/html-extras-core#README",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/t15i/lib-typescript-template.git"
+    "url": "git+https://github.com/t15i/html-extras-core.git"
   },
   "bugs": {
-    "url": "https://github.com/t15i/lib-typescript-template/issues"
+    "url": "https://github.com/t15i/html-extras-core/issues"
   },
-  "unpkg": "./dist/cdn/index.min.js",
-  "jsdelivr": "./dist/cdn/index.min.js",
+  "unpkg": "./dist/cdn/index.esm.js",
+  "jsdelivr": "./dist/cdn/index.esm.js",
   "exports": {
     "types": "./dist/types/index.d.ts",
     "import": "./dist/lib/index.js",
     "default": "./dist/lib/index.js"
   },
+  "sideEffects": false,
   "files": [
     "dist"
   ],
@@ -29,20 +42,30 @@
     "format": "prettier --check --write lib test",
     "typecheck": "tsc -p lib/tsconfig.json && tsc -p test/tsconfig.json",
     "test": "vitest watch",
-    "build": "vite build",
+    "build": "vite build && vite build --mode cdn",
     "ci:lint": "eslint --max-warnings 1 lib test",
     "ci:lint:lib": "eslint --max-warnings 1 lib",
     "ci:lint:tests": "eslint --max-warnings 1 test",
     "ci:format": "prettier --list-different lib test",
     "ci:format:lib": "prettier --list-different lib",
-    "ci:format:tests": "prettier --list-different tests",
+    "ci:format:tests": "prettier --list-different test",
     "ci:typecheck": "npm run ci:typecheck:lib && npm run ci:typecheck:tests",
     "ci:typecheck:lib": "tsc -p lib/tsconfig.json",
     "ci:typecheck:tests": "tsc -p test/tsconfig.json",
     "ci:test": "npx playwright install && vitest run --browser.headless",
-    "ci:build": "vite build"
+    "ci:build": "vite build && vite build --mode cdn"
+  },
+  "dependencies": {
+    "@t15i/htmlcollections": "^2.0.0",
+    "@t15i/webidl-decorators": "^5.0.0",
+    "@t15i/webidl-types": "^3.0.0",
+    "@t15i/webspecs": "^1.0.0",
+    "alien-signals": "^3.2.1"
   },
   "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@babel/plugin-proposal-decorators": "^7.29.7",
+    "@babel/plugin-transform-typescript": "^7.29.7",
     "@eslint/js": "^10.0.1",
     "@vitest/browser-playwright": "^4.1.4",
     "@vitest/coverage-istanbul": "^4.1.4",
@@ -54,7 +77,11 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.58.1",
     "vite": "^8.0.8",
-    "vite-plugin-dts": "^4.5.4",
+    "vite-plugin-babel": "^1.7.3",
+    "vite-plugin-dts": "^5.0.3",
     "vitest": "^4.1.4"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

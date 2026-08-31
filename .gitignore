@@ -7,3 +7,7 @@ build
 # Vite
 dist
 coverage
+
+# Vitest browser
+.vitest-attachments
+__screenshots__
