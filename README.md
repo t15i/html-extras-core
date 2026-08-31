@@ -1,49 +1,70 @@
-# lib-typescript-template
+# html-extras/core — the library the html-extras elements are built on
 
-> **Warning!** You may use this template as a general reference for 
-structuring and configuring your repository, but please do **not** use it as 
-a GitHub template outside of this organization. This repository includes 
-automation that depends on this organization’s reusable workflows, 
-which *may* and *will* change at any time without prior notice.
+A support library. It defines no elements of its own and is not meant to be
+used on its own: it holds the pieces every `@html-extras/*` element package is
+written against, so that a behaviour lives in one implementation instead of a
+copy per package.
 
-## Features
+## Install
 
-This repository contains a template for TypeScript libraries.
+```sh
+npm install @html-extras/core
+```
 
-Template provides:
+```ts
+import { ... } from "@html-extras/core";
+```
 
-1. **TypeScript development** with enforced best practices, including:
-   - strict mode;
-   - composite;
-   - verbatim syntax;
-   - separation of library code and tests, connected via [project references](https://www.typescriptlang.org/tsconfig#references);
-   - and more (see `tsconfig.json` and [tsconfig reference](https://www.typescriptlang.org/tsconfig/));
+The package ships per-module ES output and its type declarations, so a bundler
+takes it apart again and drops what an element does not reach for.
 
-2. **Code linting** with [Eslint](https://eslint.org/) and [typescript-eslint](https://typescript-eslint.io/);
+## From a CDN
 
-3. **Code formatting** with [Prettier](https://prettier.io/);
+There is also a single self-contained file, built as a module, for a page that
+loads the library straight from a URL. Name it once in an import map and
+everything on the page — the components of the family included — reaches it by
+the name of the package:
 
-4. **Testing**, including browser mode, with [Vitest](https://vitest.dev/);
+```html
+<script type="importmap">
+  {
+    "imports": {
+      "@html-extras/core": "https://cdn.jsdelivr.net/npm/@html-extras/core@1.0.0/dist/cdn/index.esm.js",
+      "@html-extras/tabs": "https://cdn.jsdelivr.net/npm/@html-extras/tabs@1.0.0/dist/cdn/index.shared.esm.js"
+    }
+  }
+</script>
 
-5. **Build tooling** with [Vite](https://vite.dev/), producing the following artifacts:
-   - type declarations;
-   - minified IIFE bundle for [unpkg](https://unpkg.com/) and [jsDelivr](https://www.jsdelivr.com/);
-   - unminified ES code for development;
+<script type="module">
+  import "@html-extras/tabs";
+  import { cell, watch } from "@html-extras/core";
+</script>
+```
 
-6. **Automated checks** for pull requests and merge queue;
+The core is fetched once, by whoever asks for it first — the components import
+it themselves, so a page that only loads components needs no import of its own.
 
-7. **Automated release pipeline** for npm that automatically bumps the version according to SemVer.
+The map has to come before the first module that resolves through it, and both
+`unpkg` and `cdn.jsdelivr.net` serve the file with the headers a module is
+fetched under. A page that would rather not keep a map can import the same file
+by its URL directly.
 
-## Post-creation TODO:
+`@html-extras/*` packages also publish a build with the core inside it, for a
+page that loads one of them and arranges nothing at all:
 
-Please make sure to:
+```html
+<script
+  type="module"
+  src="https://cdn.jsdelivr.net/npm/@html-extras/tabs@1.0.0/dist/cdn/index.esm.js"
+></script>
+```
 
-* [ ] Change all occurrences of `lib-typescript-template` in `package.json`, 
-`package-lock.json`, and `vite.config.js` with the name of your repository;
+That build and the one above are alternatives, not layers. A module is the
+thing at its URL, so a page that loads the self-contained file and then imports
+the core on its own ends up with two cores, each with registries the other
+never sees. Pin the versions, keep one URL per package, and that cannot
+happen.
 
-* [ ] Change the name, author, license, description, and keywords 
-in `package.json`;
+## License
 
-* [ ] Change this `README.md`;
-
-Happy hacking!
+[MIT](./LICENSE)
