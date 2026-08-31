@@ -4,7 +4,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "The shared primitives the html-extras collection of elements is built on",
   "keywords": [
     "custom-elements",
@@ -80,8 +80,5 @@
     "vite-plugin-babel": "^1.7.3",
     "vite-plugin-dts": "^5.0.3",
     "vitest": "^4.1.4"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }
