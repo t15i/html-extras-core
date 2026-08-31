@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "@vitest/browser/context";
 
-import { clickSuppressor } from "../lib/suppression";
-import { signal, untracked, type Signal } from "../lib/reactive";
+import { clickSuppressor } from "../../lib/reactive/suppression";
+import { signal, untracked, type Signal } from "../../lib/reactive";
 
 /**
  * A capture-phase listener on the root, registered before the module has had

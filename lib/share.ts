@@ -22,24 +22,41 @@ export interface Share<E extends object, T> {
    * @returns The data.
    */
   shared(element: E): T;
+
+  /**
+   * Returns the data `element` put on the channel, if there is an element to
+   * read.
+   *
+   * @param element - The element to read the data of, if there is one.
+   *
+   * @returns The data, null when there is no element.
+   */
+  shared(element: E | null | undefined): NonNullable<T> | null;
 }
 
 /**
- * Creates a share channel.
+ * Creates a share.
  *
- * @typeParam E - The type of element the channel carries data for.
+ * @typeParam E - The type of element the share carries data for.
  * @typeParam T - The data the channel carries.
  *
- * @returns The channel.
+ * @returns The share.
  */
 export function share<E extends object, T>(): Share<E, T> {
   const shares = new WeakMap<E, T>();
+
+  function shared(element: E): T;
+  function shared(element: E | null | undefined): NonNullable<T> | null;
+  function shared(element: E | null | undefined): T | null {
+    if (element === null || element === undefined) return null;
+
+    return shares.get(element) ?? null;
+  }
+
   return {
     share(element: E, data: T): void {
       shares.set(element, data);
     },
-    shared(element: E): T {
-      return shares.get(element) as T;
-    },
+    shared,
   };
 }

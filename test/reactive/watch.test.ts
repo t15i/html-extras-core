@@ -3,14 +3,13 @@ import { describe, expect, it, vi } from "vitest";
 import { signal, watch } from "../../lib/reactive";
 
 describe("watch()", () => {
-  it("calls back with the initial value and no old value", () => {
+  it("calls back on nothing where it is set up", () => {
     const source = signal(1);
     const cb = vi.fn();
 
     watch(source, cb);
 
-    expect(cb).toHaveBeenCalledTimes(1);
-    expect(cb).toHaveBeenCalledWith(1, undefined);
+    expect(cb).not.toHaveBeenCalled();
   });
 
   it("calls back with the new value and the old one", () => {
@@ -20,7 +19,7 @@ describe("watch()", () => {
     watch(source, cb);
     source(2);
 
-    expect(cb).toHaveBeenCalledTimes(2);
+    expect(cb).toHaveBeenCalledTimes(1);
     expect(cb).toHaveBeenLastCalledWith(2, 1);
   });
 
@@ -32,11 +31,10 @@ describe("watch()", () => {
       tick();
       return "same";
     }, cb);
-    expect(cb).toHaveBeenCalledTimes(1);
 
     tick(1);
 
-    expect(cb).toHaveBeenCalledTimes(1);
+    expect(cb).not.toHaveBeenCalled();
   });
 
   it("runs the callback untracked", () => {
@@ -47,6 +45,7 @@ describe("watch()", () => {
     });
 
     watch(source, cb);
+    source(2);
     other("b");
 
     expect(cb).toHaveBeenCalledTimes(1);
@@ -60,6 +59,6 @@ describe("watch()", () => {
     stop();
     source(2);
 
-    expect(cb).toHaveBeenCalledTimes(1);
+    expect(cb).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { computed, effect, trigger } from "../lib/reactive";
-import { tick, ticks } from "../lib/ref";
+import { computed, effect, trigger } from "../../lib/reactive";
+import { tick, ticks } from "../../lib/reactive/ref";
 
 let counter = 0;
 const nextId = (): string => `ticks-test-id-${++counter}`;

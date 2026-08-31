@@ -4,34 +4,33 @@ import { untracked } from "./untracked";
 import type { ReadonlySignal } from "./types";
 
 /**
- * Runs `cb` on every change of `source`, starting with the value it already
- * carries.
- *
- * @typeParam T - The type the signal carries.
+ * Runs `cb` every time `source` comes to carry a different value.
  *
  * @param source - The signal to watch.
- * @param cb - What to run, given the value and the one before it. The one
- *   before it is undefined on the first run, which is what tells a caller
- *   that watches an edge apart from the run that starts the watch. What it
+ * @param cb - What to run, given the value and the one before it. What it
  *   returns, if anything, is the cleanup of that run: it is run before the
  *   next one and when the watch stops, which is what lets a callback that
  *   subscribes to something hand back the way to unsubscribe from it.
  *
  * @returns A function that stops the watch.
+ *
+ * @typeParam T - The type the signal carries.
  */
 export function watch<T>(
   source: ReadonlySignal<T>,
-  cb: (value: T, oldValue: T | undefined) => void,
+  cb: (value: T, oldValue: T) => void,
 ): () => void {
-  let prevValue: T | undefined = undefined;
+  let seen: { value: T } | null = null;
+
   return effect(() => {
     const value = source();
-    const oldValue = prevValue;
+    const last = seen;
 
-    prevValue = value;
+    seen = { value };
 
-    if (value !== oldValue) {
-      return untracked(() => cb(value, oldValue));
-    }
+    if (last === null) return;
+    if (value === last.value) return;
+
+    return untracked(() => cb(value, last.value));
   });
 }

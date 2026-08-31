@@ -1,7 +1,7 @@
 import { effect } from "alien-signals";
 
-import { untracked } from "./reactive/untracked";
-import type { ReadonlySignal } from "./reactive/types";
+import { untracked } from "./untracked";
+import type { ReadonlySignal } from "./types";
 
 /**
  * The predicate of every element under a suppressor.

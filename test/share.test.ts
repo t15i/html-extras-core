@@ -43,6 +43,22 @@ describe("share()", () => {
     first.share(element, { value: 1 });
 
     expect(first.shared(element).value).toBe(1);
-    expect(second.shared(element)).toBeUndefined();
+    expect(second.shared(element)).toBeNull();
+  });
+
+  it("reads no element as nothing", () => {
+    const channel = share<HTMLElement, { value: number }>();
+
+    expect(channel.shared(null)).toBeNull();
+    expect(channel.shared(undefined)).toBeNull();
+  });
+
+  it("reads an element that shared nothing as nothing", () => {
+    const channel = share<HTMLElement, { value: number } | undefined>();
+    const element = document.createElement("div");
+
+    channel.share(element, undefined);
+
+    expect(channel.shared(element)).toBeNull();
   });
 });

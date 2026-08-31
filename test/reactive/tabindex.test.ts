@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { tabindex, type TabIndex } from "../lib/tabindex";
-import { signal, type Signal } from "../lib/reactive";
+import { tabindex, type TabIndex } from "../../lib/reactive/tabindex";
+import { signal, type Signal } from "../../lib/reactive";
 
 let counter = 0;
 const nextTag = (): string => `tabindex-test-element-${++counter}`;
@@ -13,7 +13,7 @@ afterEach(() => {
 
 /**
  * An element controlled by a `tabindex` controller, driving it the way an
- * element does: its `attributeChangedCallback` reports the attribute, and
+ * element does: its `attributeChangedCallback` announces the attribute, and
  * nothing else touches it.
  *
  * @param attributes - The attributes the element carries in markup before it
@@ -34,15 +34,12 @@ function fixture(attributes?: string): {
 
     constructor() {
       super();
+
       attribute = tabindex(this, internal);
     }
 
-    attributeChangedCallback(
-      _name: string,
-      _oldValue: string | null,
-      value: string | null,
-    ): void {
-      attribute!(value);
+    attributeChangedCallback(): void {
+      attribute!.announce();
     }
   }
 
@@ -122,6 +119,8 @@ describe("tabindex()", () => {
   });
 
   it("stops writing once the author writes the value it would have written", () => {
+    // The value stands still and the attribute changes hands all the same:
+    // what makes it the author's is the write, not what the write left behind.
     const { element, internal } = fixture();
 
     internal(-1);
@@ -216,17 +215,17 @@ describe("tabindex()", () => {
     expect(element.getAttribute("tabindex")).toBe("5");
   });
 
-  it("counts an attribute it never wrote as the author's, told about it or not", () => {
-    // What an upgrade looks like when the markup carries `tabindex` after the
-    // attribute the internal value is made of: the controller is asked to
-    // materialize before the callback for `tabindex` has reached it.
+  it("counts an attribute it was told about as the author's", () => {
     const element = document.createElement("div");
     element.setAttribute("tabindex", "5");
     document.body.appendChild(element);
     trash.push(element);
 
-    const internal = signal<number | null>(-1);
-    tabindex(element, internal);
+    // The value an element gives itself starts empty, as it does in an
+    // element: nothing is written before the attribute has been announced.
+    const internal = signal<number | null>(null);
+    const attribute = tabindex(element, internal);
+    attribute.announce();
 
     expect(element.getAttribute("tabindex")).toBe("5");
 
@@ -234,16 +233,35 @@ describe("tabindex()", () => {
     expect(element.getAttribute("tabindex")).toBe("5");
 
     element.removeAttribute("tabindex");
-    expect(element.hasAttribute("tabindex")).toBe(false);
+    attribute.announce();
+    expect(element.getAttribute("tabindex")).toBe("0");
   });
 
-  it("writes over an attribute it never wrote whose value is no value at all", () => {
+  it("hears about the attribute from the element and nowhere else", () => {
+    // An element that gives itself a value before it has announced the
+    // attribute it carries writes over the author's, because as far as
+    // anything here can tell there is nothing to write over. That is what
+    // makes the value an element gives itself a value it only has once it is
+    // connected: the announcement of a connection comes after the
+    // announcement of every attribute an upgrade brings.
+    const element = document.createElement("div");
+    element.setAttribute("tabindex", "5");
+    document.body.appendChild(element);
+    trash.push(element);
+
+    // Nothing announces the attribute: the controller is never told.
+    tabindex(element, signal<number | null>(-1));
+
+    expect(element.getAttribute("tabindex")).toBe("-1");
+  });
+
+  it("writes over an attribute whose value is no value at all", () => {
     const element = document.createElement("div");
     element.setAttribute("tabindex", "nonsense");
     document.body.appendChild(element);
     trash.push(element);
 
-    tabindex(element, signal<number | null>(-1));
+    tabindex(element, signal<number | null>(-1)).announce();
 
     expect(element.getAttribute("tabindex")).toBe("-1");
   });

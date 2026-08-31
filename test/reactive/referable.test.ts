@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { effect, signal } from "../lib/reactive";
-import type { ReadonlySignal } from "../lib/reactive";
-import { ref, refTarget, ticks } from "../lib/ref";
+import { effect, signal } from "../../lib/reactive";
+import type { ReadonlySignal } from "../../lib/reactive";
+import { ref, referable, ticks } from "../../lib/reactive/ref";
 
 let counter = 0;
 const nextId = (): string => `ref-target-test-id-${++counter}`;
@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 /**
- * Records what `refTarget` announces, in the order it announces it.
+ * Records what `referable` announces, in the order it announces it.
  *
  * @remarks
  * An announcement is a tick, and a tick is only heard by what reads it, so a
@@ -63,7 +63,7 @@ function shadow(): ShadowRoot {
   return host.attachShadow({ mode: "open" });
 }
 
-describe("refTarget()", () => {
+describe("referable()", () => {
   it("announces nothing while the element has neither id nor root", () => {
     const element = target();
     const id = signal<string | null>(null);
@@ -71,7 +71,7 @@ describe("refTarget()", () => {
     const { announced, on } = announcements();
 
     on(element, ticks(document, element));
-    refTarget(element, { id, root });
+    referable(element, { id, root });
 
     expect(announced).toEqual([]);
   });
@@ -86,7 +86,7 @@ describe("refTarget()", () => {
     on(value, ticks(document, value));
     on(element, ticks(document, element));
 
-    refTarget(element, { id, root });
+    referable(element, { id, root });
     id(value);
 
     // The element is announced as itself the moment it is a target in a root,
@@ -100,7 +100,7 @@ describe("refTarget()", () => {
     const root = signal<Node | null>(null);
     const element = target();
 
-    refTarget(element, { id, root });
+    referable(element, { id, root });
     const { announced, on } = announcements();
 
     on(element, ticks(document, element));
@@ -116,7 +116,7 @@ describe("refTarget()", () => {
     const root = signal<Node | null>(document);
     const element = target();
 
-    refTarget(element, { id, root });
+    referable(element, { id, root });
     const { announced, on } = announcements();
 
     on(element, ticks(document, element));
@@ -135,7 +135,7 @@ describe("refTarget()", () => {
     const id = signal<string | null>(first);
     const root = signal<Node | null>(document);
 
-    refTarget(target(), { id, root });
+    referable(target(), { id, root });
     const { announced, on } = announcements();
 
     on(first, ticks(document, first));
@@ -151,7 +151,7 @@ describe("refTarget()", () => {
     const id = signal<string | null>(value);
     const root = signal<Node | null>(document);
 
-    refTarget(target(), { id, root });
+    referable(target(), { id, root });
     const { announced, on } = announcements();
 
     on(value, ticks(document, value));
@@ -166,7 +166,7 @@ describe("refTarget()", () => {
     const root = signal<Node | null>(null);
     const element = target();
 
-    refTarget(element, { id, root });
+    referable(element, { id, root });
     const { announced, on } = announcements();
 
     on(element, ticks(document, element));
@@ -186,7 +186,7 @@ describe("refTarget()", () => {
     const entered = shadow();
     const root = signal<Node | null>(left);
 
-    refTarget(target(), { id, root });
+    referable(target(), { id, root });
     const { announced, on } = announcements();
 
     on("left", ticks(left, id()!));
@@ -203,7 +203,7 @@ describe("refTarget()", () => {
     const elsewhere = shadow();
     const renamed = nextId();
 
-    refTarget(target(), { id, root });
+    referable(target(), { id, root });
     const { announced, on } = announcements();
 
     on("in the root of the element", ticks(document, renamed));
@@ -220,7 +220,7 @@ describe("refTarget()", () => {
     const element = target();
     const renamed = nextId();
 
-    refTarget(element, { id, root });
+    referable(element, { id, root });
     const { announced, on } = announcements();
 
     on(element, ticks(document, element));
@@ -240,7 +240,7 @@ describe("refTarget()", () => {
     const element = target();
     const renamed = nextId();
 
-    const stop = refTarget(element, { id, root });
+    const stop = referable(element, { id, root });
     const { announced, on } = announcements();
 
     on(element, ticks(document, element));
@@ -255,7 +255,7 @@ describe("refTarget()", () => {
   });
 });
 
-describe("ref() and refTarget() together", () => {
+describe("ref() and referable() together", () => {
   /**
    * A target driven by the signals its element would drive from its callbacks,
    * and a reference to it that resolves the way a reflected attribute does.
@@ -266,7 +266,7 @@ describe("ref() and refTarget() together", () => {
 
     const targetId = signal<string | null>(null);
     const targetRoot = signal<Node | null>(null);
-    refTarget(target, { id: targetId, root: targetRoot });
+    referable(target, { id: targetId, root: targetRoot });
 
     const connect = (): void => {
       document.body.appendChild(target);
@@ -282,19 +282,22 @@ describe("ref() and refTarget() together", () => {
       targetId(value);
     };
 
-    let referenceId: string | null = null;
+    const referenceId = signal<string | null>(null);
     const referenceRoot = signal<Node | null>(document);
-    const reference = ref<HTMLAnchorElement>(() => {
-      if (referenceId === null) return null;
+    const reference = ref<HTMLAnchorElement>(
+      () => {
+        const carried = referenceId();
+        if (carried === null) return null;
 
-      const candidate = document.getElementById(referenceId);
-      return candidate instanceof HTMLAnchorElement ? candidate : null;
-    }, referenceRoot);
+        const candidate = document.getElementById(carried);
+        return candidate instanceof HTMLAnchorElement ? candidate : null;
+      },
+      { id: referenceId, root: referenceRoot },
+    );
 
     /** Hands the reference an attribute value, the way a reaction does. */
     const point = (value: string | null): void => {
-      referenceId = value;
-      reference(value);
+      referenceId(value);
     };
 
     return { target, connect, disconnect, rename, point, reference };
@@ -336,14 +339,15 @@ describe("ref() and refTarget() together", () => {
     root.appendChild(element);
 
     const elementRoot = signal<Node | null>(element.getRootNode());
-    refTarget(element, { id: signal<string | null>(null), root: elementRoot });
+    referable(element, { id: signal<string | null>(null), root: elementRoot });
 
     let reachable = true;
+    const carried = signal<string | null>(null);
     const reference = ref<HTMLAnchorElement>(
       () => (reachable ? element : null),
-      signal<Node | null>(root),
+      { id: carried, root: signal<Node | null>(root) },
     );
-    reference("");
+    carried("");
 
     expect(reference()).toBe(element);
 

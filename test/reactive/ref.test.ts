@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { signal, trigger } from "../lib/reactive";
-import { ref, ticks } from "../lib/ref";
+import { signal, trigger } from "../../lib/reactive";
+import type { ReadonlySignal } from "../../lib/reactive";
+import { ref, ticks, type Reference } from "../../lib/reactive/ref";
 
 let counter = 0;
 const nextId = (): string => `ref-test-id-${++counter}`;
@@ -29,13 +30,41 @@ function shadow(): ShadowRoot {
   return element().attachShadow({ mode: "open" });
 }
 
+/**
+ * A reference driven the way an element drives one: what the content
+ * attribute carries is written here, and the reference is announced.
+ *
+ * @param accessor - Resolves the reference.
+ * @param root - The root of the referring element.
+ *
+ * @returns The reference, with the way to carry a value into it.
+ */
+function driven<T extends Element>(
+  accessor: () => T | null,
+  root: ReadonlySignal<Node | null>,
+): Reference<T> & {
+  carry(value: string | null): void;
+  announce(): void;
+} {
+  const carried = signal<string | null>(null);
+
+  return Object.assign(ref(accessor, { id: carried, root }), {
+    carry(value: string | null): void {
+      carried(value);
+    },
+    announce(): void {
+      trigger(carried);
+    },
+  });
+}
+
 describe("ref()", () => {
   it("returns what the accessor resolves", () => {
     const target = element();
     const root = signal<Node | null>(document);
 
-    const reference = ref(() => target, root);
-    reference(nextId());
+    const reference = driven(() => target, root);
+    reference.carry(nextId());
 
     expect(reference()).toBe(target);
   });
@@ -44,8 +73,8 @@ describe("ref()", () => {
     const id = signal<string | null>(null);
     const root = signal<Node | null>(document);
 
-    const reference = ref<HTMLElement>(() => null, root);
-    reference(id());
+    const reference = driven<HTMLElement>(() => null, root);
+    reference.carry(id());
 
     expect(reference()).toBeNull();
   });
@@ -55,8 +84,8 @@ describe("ref()", () => {
     const root = signal<Node | null>(document);
 
     let current: HTMLElement | null = null;
-    const reference = ref(() => current, root);
-    reference(id());
+    const reference = driven(() => current, root);
+    reference.carry(id());
 
     expect(reference()).toBeNull();
     current = element();
@@ -72,22 +101,22 @@ describe("ref()", () => {
     const id = signal<string | null>(first.id);
     const root = signal<Node | null>(document);
 
-    const reference = ref(
+    const reference = driven(
       () => (id() === null ? null : document.getElementById(id()!)),
       root,
     );
-    reference(id());
+    reference.carry(id());
 
     expect(reference()).toBe(first);
 
     id(second.id);
 
-    reference(id());
+    reference.carry(id());
     expect(reference()).toBe(second);
 
     id(null);
 
-    reference(id());
+    reference.carry(id());
     expect(reference()).toBeNull();
   });
 
@@ -96,11 +125,11 @@ describe("ref()", () => {
     const root = signal<Node | null>(shadow());
 
     let evaluations = 0;
-    const reference = ref(() => {
+    const reference = driven(() => {
       evaluations++;
       return null;
     }, root);
-    reference(id());
+    reference.carry(id());
 
     void reference();
     expect(evaluations).toBe(1);
@@ -115,11 +144,11 @@ describe("ref()", () => {
     const wrong = element(id);
     const root = signal<Node | null>(document);
 
-    const reference = ref<HTMLAnchorElement>(() => {
+    const reference = driven<HTMLAnchorElement>(() => {
       const candidate = document.getElementById(id);
       return candidate instanceof HTMLAnchorElement ? candidate : null;
     }, root);
-    reference(id);
+    reference.carry(id);
 
     expect(document.getElementById(id)).toBe(wrong);
     expect(reference()).toBeNull();
@@ -132,11 +161,11 @@ describe("ref() and the tick of a root", () => {
     const root = signal<Node | null>(document);
 
     let evaluations = 0;
-    const reference = ref<HTMLElement>(() => {
+    const reference = driven<HTMLElement>(() => {
       evaluations++;
       return null;
     }, root);
-    reference(id);
+    reference.carry(id);
 
     // A reference nobody reads has nothing to invalidate.
     trigger(ticks(document, id));
@@ -154,8 +183,8 @@ describe("ref() and the tick of a root", () => {
     const id = nextId();
     const root = signal<Node | null>(document);
 
-    const reference = ref<HTMLElement>(() => null, root);
-    reference(id);
+    const reference = driven<HTMLElement>(() => null, root);
+    reference.carry(id);
 
     void reference();
     const tick = ticks(document, id);
@@ -172,11 +201,11 @@ describe("ref() and the tick of a root", () => {
     const elsewhere = shadow();
 
     let evaluations = 0;
-    const reference = ref<HTMLElement>(() => {
+    const reference = driven<HTMLElement>(() => {
       evaluations++;
       return null;
     }, root);
-    reference(id());
+    reference.carry(id());
 
     void reference();
     expect(evaluations).toBe(1);
@@ -196,11 +225,11 @@ describe("ref() and the tick of a root", () => {
     const root = signal<Node | null>(document);
 
     let evaluations = 0;
-    const reference = ref<HTMLElement>(() => {
+    const reference = driven<HTMLElement>(() => {
       evaluations++;
       return null;
     }, root);
-    reference(id());
+    reference.carry(id());
 
     void reference();
     trigger(ticks(document, nextId()));
@@ -216,15 +245,15 @@ describe("ref() and the tick of a root", () => {
     const root = signal<Node | null>(document);
 
     let evaluations = 0;
-    const reference = ref<HTMLElement>(() => {
+    const reference = driven<HTMLElement>(() => {
       evaluations++;
       return null;
     }, root);
-    reference(id());
+    reference.carry(id());
 
     void reference();
     id(second);
-    reference(id());
+    reference.carry(id());
     void reference();
     expect(evaluations).toBe(2);
 
@@ -241,15 +270,15 @@ describe("ref() and the tick of a root", () => {
     const id = signal<string | null>(nextId());
     const root = signal<Node | null>(document);
 
-    const reference = ref<HTMLElement>(() => null, root);
-    reference(id());
+    const reference = driven<HTMLElement>(() => null, root);
+    reference.carry(id());
     void reference();
 
     const carried = id()!;
     const tick = ticks(document, carried);
 
     id(nextId());
-    reference(id());
+    reference.carry(id());
     void reference();
 
     // Nothing reads it any more, so nothing keeps it.
@@ -261,16 +290,16 @@ describe("ref() and the tick of a root", () => {
     const root = signal<Node | null>(document);
 
     let evaluations = 0;
-    const reference = ref<HTMLElement>(() => {
+    const reference = driven<HTMLElement>(() => {
       evaluations++;
       return null;
     }, root);
-    reference(id());
+    reference.carry(id());
 
     const carried = id()!;
     void reference();
     id(null);
-    reference(id());
+    reference.carry(id());
     void reference();
     const before = evaluations;
 
@@ -284,8 +313,8 @@ describe("ref() and the tick of a root", () => {
     const id = signal<string | null>(nextId());
     const root = signal<Node | null>(document);
 
-    const reference = ref<HTMLElement>(() => null, root);
-    reference(id());
+    const reference = driven<HTMLElement>(() => null, root);
+    reference.carry(id());
     void reference();
 
     const tick = ticks(document, id()!);
@@ -304,11 +333,11 @@ describe("ref() and the tick of a root", () => {
     const root = signal<Node | null>(document);
 
     let evaluations = 0;
-    const reference = ref<HTMLElement>(() => {
+    const reference = driven<HTMLElement>(() => {
       evaluations++;
       return null;
     }, root);
-    reference(id());
+    reference.carry(id());
 
     void reference();
     root(entered);
@@ -330,8 +359,8 @@ describe("ref() and the tick of an element", () => {
     const target = element();
     const root = signal<Node | null>(document);
 
-    const reference = ref(() => target, root);
-    reference("");
+    const reference = driven(() => target, root);
+    reference.carry("");
 
     expect(reference()).toBe(target);
     expect(ticks(document, target)).toBe(ticks(document, target));
@@ -343,8 +372,8 @@ describe("ref() and the tick of an element", () => {
     // An element set through IDL that is out of reach is resolved by nothing
     // at all, and there is no element whose tick could say that it came into
     // reach either.
-    const reference = ref<HTMLElement>(() => null, root);
-    reference("");
+    const reference = driven<HTMLElement>(() => null, root);
+    reference.carry("");
 
     expect(reference()).toBeNull();
   });
@@ -354,11 +383,11 @@ describe("ref() and the tick of an element", () => {
     const root = signal<Node | null>(document);
 
     let evaluations = 0;
-    const reference = ref(() => {
+    const reference = driven(() => {
       evaluations++;
       return target;
     }, root);
-    reference("");
+    reference.carry("");
 
     void reference();
     expect(evaluations).toBe(1);
@@ -376,8 +405,8 @@ describe("ref() and the tick of an element", () => {
     // element while it is in reach and nothing while it is not, without the
     // attribute changing either way.
     let reachable = true;
-    const reference = ref(() => (reachable ? target : null), root);
-    reference("");
+    const reference = driven(() => (reachable ? target : null), root);
+    reference.carry("");
 
     expect(reference()).toBe(target);
 
@@ -397,18 +426,20 @@ describe("ref() and the tick of an element", () => {
 
     let assigned = first;
     let evaluations = 0;
-    const reference = ref(() => {
+    const reference = driven(() => {
       evaluations++;
       return assigned;
     }, root);
-    reference("");
+    reference.carry("");
 
     expect(reference()).toBe(first);
 
     // What a second assignment through IDL looks like from here: the same
     // empty string written again, with another element behind it.
     assigned = second;
-    reference("");
+    reference.carry("");
+    // The value is the same one, so only the announcement says anything.
+    reference.announce();
     expect(reference()).toBe(second);
 
     const before = evaluations;
@@ -426,14 +457,14 @@ describe("ref() and the tick of an element", () => {
     const root = signal<Node | null>(document);
 
     let evaluations = 0;
-    const reference = ref(() => {
+    const reference = driven(() => {
       evaluations++;
       return target;
     }, root);
-    reference("");
+    reference.carry("");
     void reference();
 
-    reference(target.id);
+    reference.carry(target.id);
     void reference();
     const before = evaluations;
 
@@ -452,11 +483,11 @@ describe("ref() and the tick of an element", () => {
     const root = signal<Node | null>(entered);
 
     let evaluations = 0;
-    const reference = ref(() => {
+    const reference = driven(() => {
       evaluations++;
       return target;
     }, root);
-    reference("");
+    reference.carry("");
 
     void reference();
     expect(evaluations).toBe(1);
@@ -479,14 +510,14 @@ describe("ref() and the tick of an element", () => {
     const root = signal<Node | null>(entered);
 
     let evaluations = 0;
-    const reference = ref(() => {
+    const reference = driven(() => {
       evaluations++;
       return target;
     }, root);
-    reference("");
+    reference.carry("");
     void reference();
 
-    reference(target.id);
+    reference.carry(target.id);
     void reference();
     const before = evaluations;
 
@@ -505,11 +536,11 @@ describe("ref() and the tick of an element", () => {
     const root = signal<Node | null>(entered);
 
     let evaluations = 0;
-    const reference = ref(() => {
+    const reference = driven(() => {
       evaluations++;
       return target;
     }, root);
-    reference("");
+    reference.carry("");
 
     void reference();
 
@@ -524,11 +555,11 @@ describe("ref() and the tick of an element", () => {
     const root = signal<Node | null>(document);
 
     let evaluations = 0;
-    const reference = ref(() => {
+    const reference = driven(() => {
       evaluations++;
       return target;
     }, root);
-    reference("");
+    reference.carry("");
 
     void reference();
     trigger(ticks(document, target.id));
@@ -543,8 +574,8 @@ describe("ref() while the referring element has no root", () => {
     const id = signal<string | null>(nextId());
     const root = signal<Node | null>(null);
 
-    const reference = ref<HTMLElement>(() => null, root);
-    reference(id());
+    const reference = driven<HTMLElement>(() => null, root);
+    reference.carry(id());
     void reference();
 
     // A tick nothing reads is a new tick on every ask, in every root there
