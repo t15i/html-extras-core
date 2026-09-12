@@ -30,7 +30,7 @@ the name of the package:
   {
     "imports": {
       "@html-extras/core": "https://cdn.jsdelivr.net/npm/@html-extras/core@1.0.0/dist/cdn/index.esm.js",
-      "@html-extras/tabs": "https://cdn.jsdelivr.net/npm/@html-extras/tabs@1.0.0/dist/cdn/index.shared.esm.js"
+      "@html-extras/tabs": "https://cdn.jsdelivr.net/npm/@html-extras/tabs@1.0.0/dist/cdn/index.esm.js"
     }
   }
 </script>
@@ -55,7 +55,7 @@ page that loads one of them and arranges nothing at all:
 ```html
 <script
   type="module"
-  src="https://cdn.jsdelivr.net/npm/@html-extras/tabs@1.0.0/dist/cdn/index.esm.js"
+  src="https://cdn.jsdelivr.net/npm/@html-extras/tabs@1.0.0/dist/cdn/index.standalone.esm.js"
 ></script>
 ```
 
